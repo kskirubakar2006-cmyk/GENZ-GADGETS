@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GENZ GADGETS | Dashboard{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="dashboard-body">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}" id="flash-{{ loop.index }}">
+                        <span>{{ message }}</span>
+                        <button class="close-flash" onclick="dismissFlash('flash-{{ loop.index }}')">&times;</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% if is_admin %}
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand-card"></div>
+            <nav class="sidebar-menu">
+                <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <a href="{{ url_for('inventory') }}" class="sidebar-link {% if request.endpoint == 'inventory' or request.endpoint in ['admin_add_product', 'admin_edit_product'] %}active{% endif %}">
+                    <i class="bi bi-box-seam"></i> Inventory Catalog
+                    {% if low_stock_alerts > 0 %}
+                        <span class="badge badge-warning sidebar-badge" title="Low stock items">{{ low_stock_alerts }}</span>
+                    {% endif %}
+                </a>
+                <a href="{{ url_for('customers') }}" class="sidebar-link {% if request.endpoint in ['customers', 'add_customer', 'edit_customer'] %}active{% endif %}">
+                    <i class="bi bi-people"></i> Customers
+                </a>
+                <a href="{{ url_for('suppliers') }}" class="sidebar-link {% if request.endpoint in ['suppliers', 'add_supplier', 'edit_supplier'] %}active{% endif %}">
+                    <i class="bi bi-truck"></i> Suppliers
+                </a>
+                <a href="{{ url_for('purchases') }}" class="sidebar-link {% if request.endpoint in ['purchases', 'add_purchase', 'edit_purchase'] %}active{% endif %}">
+                    <i class="bi bi-bag-check"></i> Purchases
+                </a>
+                <a href="{{ url_for('sales') }}" class="sidebar-link {% if request.endpoint in ['sales', 'add_sale', 'edit_sale'] %}active{% endif %}">
+                    <i class="bi bi-cart3"></i> Sales
+                </a>
+                <a href="{{ url_for('reports') }}" class="sidebar-link {% if request.endpoint == 'reports' %}active{% endif %}">
+                    <i class="bi bi-graph-up"></i> Reports
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar"><i class="bi bi-person-badge"></i></div>
+                    <div class="user-details">
+                        <span class="username">{{ current_user.username }}</span>
+                        <span class="role">Store Owner</span>
+                    </div>
+                </div>
+                <div class="sidebar-meta-card">
+                    <div class="sidebar-meta-row"><i class="bi bi-calendar3"></i><span id="sidebar-date"></span></div>
+                    <div class="sidebar-meta-row"><i class="bi bi-clock-history"></i><span id="sidebar-time"></span></div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn btn-primary btn-sm logout-btn">
+                    <i class="bi bi-box-arrow-right"></i> Log Out
+                </a>
+            </div>
+        </aside>
+        <main class="dashboard-main">
+            <div class="dashboard-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% else %}
+        <main class="auth-main">
+            {% block auth_content %}{% endblock %}
+        </main>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        function showLoginSuccessToast() {
+            if (localStorage.getItem('showLoginSuccess') !== '1') return;
+            localStorage.removeItem('showLoginSuccess');
+
+            var container = document.querySelector('.flash-messages');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'flash-messages';
+                document.body.appendChild(container);
+            }
+
+            var toast = document.createElement('div');
+            toast.className = 'flash-message flash-success';
+            toast.style.position = 'fixed';
+            toast.style.top = '1.2rem';
+            toast.style.right = '1.2rem';
+            toast.style.zIndex = '1100';
+            toast.style.minWidth = '280px';
+            toast.innerHTML = '<strong>✔ Login Successful</strong><div style="margin-top:0.25rem;">Welcome back, Kirubakar!</div>';
+            container.appendChild(toast);
+
+            setTimeout(function () {
+                toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(function () {
+                    toast.remove();
+                }, 300);
+            }, 2400);
+        }
+
+        function updateClock() {
+            var now = new Date();
+            var sidebarDateEl = document.getElementById('sidebar-date');
+            var sidebarTimeEl = document.getElementById('sidebar-time');
+            var heroDateEl = document.getElementById('dashboard-datetime');
+            var dashboardDateEl = document.getElementById('dashboard-date');
+            var dashboardTimeEl = document.getElementById('dashboard-time');
+
+            if (sidebarDateEl) {
+                sidebarDateEl.innerText = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            if (sidebarTimeEl) {
+                sidebarTimeEl.innerText = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+            }
+            if (dashboardDateEl) {
+                dashboardDateEl.innerText = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+            if (dashboardTimeEl) {
+                dashboardTimeEl.innerText = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+            }
+            if (heroDateEl) {
+                heroDateEl.innerText = now.toLocaleString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.location.pathname === '/inventory') {
+                showLoginSuccessToast();
+            }
+            updateClock();
+        });
+        setInterval(updateClock, 1000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

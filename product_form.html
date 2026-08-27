@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}GENZ GADGETS | Inventory{% endblock %}
+
+{% block section_title %}{% if product %}Edit Product details{% else %}Add New Inventory Item{% endif %}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <a href="{{ url_for('inventory') }}" style="font-weight: 700; color: var(--text-muted); font-size: 0.9rem;">
+        <i class="bi bi-arrow-left"></i> Back to Inventory
+    </a>
+</div>
+
+<div class="form-card" style="max-width: 700px; margin: 0 auto 3rem auto; padding: 2.5rem;">
+    <h2 class="form-title" style="text-align: left; border-bottom: 2px solid var(--border-light); padding-bottom: 0.75rem; margin-bottom: 2rem; font-size: 1.35rem;">
+        {% if product %}
+            <i class="bi bi-pencil-square" style="color: var(--accent-primary);"></i> Edit: <span style="font-weight: 500;">{{ product.name }}</span>
+        {% else %}
+            <i class="bi bi-plus-circle-fill" style="color: var(--accent-primary);"></i> Register New Electronic Device
+        {% endif %}
+    </h2>
+    <form action="{% if product %}{{ url_for('admin_edit_product', product_id=product.id) }}{% else %}{{ url_for('admin_add_product') }}{% endif %}" 
+          method="POST" enctype="multipart/form-data">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div>
+                <div class="form-group">
+                    <label for="name" class="form-label">Product Name</label>
+                    <input type="text" name="name" id="name" class="form-control" 
+                           value="{{ product.name if product else '' }}" placeholder="E.g. Nova X1 Pro" required>
+                </div>
+                <div class="form-group">
+                    <label for="brand" class="form-label">Brand</label>
+                    <input type="text" name="brand" id="brand" class="form-control" 
+                           value="{{ product.brand if product else '' }}" placeholder="E.g. Zera" required>
+                </div>
+                <div class="form-group">
+                    <label for="category" class="form-label">Category</label>
+                    <select name="category" id="category" class="form-control" style="cursor: pointer;" required>
+                        <option value="" disabled selected>Select Category</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat }}" {% if product and product.category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="price" class="form-label">Unit Price (₹)</label>
+                        <input type="number" step="0.01" name="price" id="price" class="form-control" 
+                               value="{{ product.price if product else '' }}" placeholder="899.99" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="stock_quantity" class="form-label">Initial Stock</label>
+                        <input type="number" name="stock_quantity" id="stock_quantity" class="form-control" 
+                               value="{{ product.stock_quantity if product else '10' }}" placeholder="25" min="0" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="image_file" class="form-label">Device Image (Optional)</label>
+                    <input type="file" name="image_file" id="image_file" class="form-control" accept="image/*" style="padding: 0.5rem 0.75rem;">
+                    <small style="color: var(--text-muted); display: block; margin-top: 0.25rem;">Leaves unchanged or auto-creates fallback SVGs if empty.</small>
+                    {% if product and product.image_url %}
+                        <div style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">Current:</span>
+                            <img src="{{ product.image_url }}" alt="Preview" style="height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border-light); background-color: #F3F4F6;">
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div>
+                <h3 style="font-weight: 800; font-size: 0.9rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.25rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                    Technical Specifications
+                </h3>
+                <div class="form-group">
+                    <label for="spec_display" class="form-label">Display Size / Type</label>
+                    <input type="text" name="spec_display" id="spec_display" class="form-control" 
+                           value="{{ product.specs.get('Display', '') if product else '' }}" placeholder="E.g. 6.7-inch OLED 120Hz">
+                </div>
+                <div class="form-group">
+                    <label for="spec_processor" class="form-label">CPU / Processor</label>
+                    <input type="text" name="spec_processor" id="spec_processor" class="form-control" 
+                           value="{{ product.specs.get('Processor', '') if product else '' }}" placeholder="E.g. Snapdragon 8 Gen 3">
+                </div>
+                <div class="form-group">
+                    <label for="spec_ram" class="form-label">RAM / Memory</label>
+                    <input type="text" name="spec_ram" id="spec_ram" class="form-control" 
+                           value="{{ product.specs.get('RAM', '') if product else '' }}" placeholder="E.g. 12GB LPDDR5X">
+                </div>
+                <div class="form-group">
+                    <label for="spec_storage" class="form-label">Storage Capacity</label>
+                    <input type="text" name="spec_storage" id="spec_storage" class="form-control" 
+                           value="{{ product.specs.get('Storage', '') if product else '' }}" placeholder="E.g. 256GB UFS 4.0">
+                </div>
+                <div class="form-group">
+                    <label for="spec_battery" class="form-label">Battery Capacity</label>
+                    <input type="text" name="spec_battery" id="spec_battery" class="form-control" 
+                           value="{{ product.specs.get('Battery', '') if product else '' }}" placeholder="E.g. 5000 mAh">
+                </div>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top: 1.5rem;">
+            <label for="description" class="form-label">Product Description</label>
+            <textarea name="description" id="description" class="form-control" rows="4" 
+                      placeholder="Write a clear details-rich product summary..." required>{{ product.description if product else '' }}</textarea>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 2rem; border-top: 1px solid var(--border-light); padding-top: 1.5rem;">
+            <a href="{{ url_for('inventory') }}" class="btn btn-outline" style="flex: 1; border-radius: var(--radius-full);">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" style="flex: 2; border-radius: var(--radius-full);">
+                {% if product %}Save Changes{% else %}Create Product{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

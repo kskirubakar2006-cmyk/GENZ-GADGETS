@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}GENZ GADGETS | Reports{% endblock %}
+
+{% block content %}
+<div class="dashboard-shell">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-main);">Reports</h2>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="reports-tabs" style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border-color, #e5e7eb);">
+        <a href="{{ url_for('reports', type='inventory') }}" class="tab-link {% if report_type == 'inventory' %}active{% endif %}" style="padding: 0.5rem 1rem; text-decoration: none; color: {% if report_type == 'inventory' %}var(--primary, #4f46e5){% else %}var(--text-muted, #6b7280){% endif %}; border-bottom: {% if report_type == 'inventory' %}2px solid var(--primary, #4f46e5){% else %}none{% endif %}; font-weight: 600;">Inventory Report</a>
+        <a href="{{ url_for('reports', type='purchase') }}" class="tab-link {% if report_type == 'purchase' %}active{% endif %}" style="padding: 0.5rem 1rem; text-decoration: none; color: {% if report_type == 'purchase' %}var(--primary, #4f46e5){% else %}var(--text-muted, #6b7280){% endif %}; border-bottom: {% if report_type == 'purchase' %}2px solid var(--primary, #4f46e5){% else %}none{% endif %}; font-weight: 600;">Purchase Report</a>
+        <a href="{{ url_for('reports', type='sales') }}" class="tab-link {% if report_type == 'sales' %}active{% endif %}" style="padding: 0.5rem 1rem; text-decoration: none; color: {% if report_type == 'sales' %}var(--primary, #4f46e5){% else %}var(--text-muted, #6b7280){% endif %}; border-bottom: {% if report_type == 'sales' %}2px solid var(--primary, #4f46e5){% else %}none{% endif %}; font-weight: 600;">Sales Report</a>
+    </div>
+
+    {% if report_type in ['purchase', 'sales'] %}
+    <!-- Date Filter Form -->
+    <div style="background: var(--bg-card, #fff); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color, #e5e7eb); margin-bottom: 2rem;">
+        <form method="GET" action="{{ url_for('reports') }}" style="display: flex; gap: 1rem; align-items: flex-end;">
+            <input type="hidden" name="type" value="{{ report_type }}">
+            <div style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-main, #111827); font-weight: 500;">Start Date</label>
+                <input type="date" name="start_date" value="{{ start_date }}" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 6px;">
+            </div>
+            <div style="flex: 1;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--text-main, #111827); font-weight: 500;">End Date</label>
+                <input type="date" name="end_date" value="{{ end_date }}" class="form-control" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color, #e5e7eb); border-radius: 6px;">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background: var(--primary, #4f46e5); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Filter</button>
+                <a href="{{ url_for('reports', type=report_type) }}" class="btn btn-secondary" style="padding: 0.5rem 1.5rem; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; font-weight: 600; text-decoration: none; margin-left: 0.5rem;">Clear</a>
+                <button type="submit" name="export" value="csv" class="btn btn-success" style="padding: 0.5rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-left: 0.5rem;"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if report_type == 'inventory' %}
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <a href="{{ url_for('reports', type='inventory', export='csv') }}" class="btn btn-success" style="padding: 0.5rem 1.5rem; background: #10b981; color: white; border: none; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Report Table -->
+    <div class="table-responsive" style="background: var(--bg-card, #fff); border-radius: 12px; border: 1px solid var(--border-color, #e5e7eb); overflow: hidden;">
+        <table class="table" style="width: 100%; text-align: left; border-collapse: collapse; margin: 0;">
+            <thead style="background: #f9fafb; border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                {% if report_type == 'inventory' %}
+                <tr>
+                    <th style="padding: 1rem;">Product</th>
+                    <th style="padding: 1rem;">Stock</th>
+                    <th style="padding: 1rem;">Price</th>
+                    <th style="padding: 1rem; text-align: right;">Total Value</th>
+                </tr>
+                {% elif report_type == 'purchase' %}
+                <tr>
+                    <th style="padding: 1rem;">Date</th>
+                    <th style="padding: 1rem;">Supplier</th>
+                    <th style="padding: 1rem;">Product</th>
+                    <th style="padding: 1rem;">Quantity</th>
+                    <th style="padding: 1rem; text-align: right;">Purchase Price</th>
+                </tr>
+                {% elif report_type == 'sales' %}
+                <tr>
+                    <th style="padding: 1rem;">Date</th>
+                    <th style="padding: 1rem;">Customer</th>
+                    <th style="padding: 1rem;">Product</th>
+                    <th style="padding: 1rem;">Quantity</th>
+                    <th style="padding: 1rem; text-align: right;">Selling Price</th>
+                </tr>
+                {% endif %}
+            </thead>
+            <tbody>
+                {% if report_type == 'inventory' %}
+                    {% for item in inventory_data %}
+                    <tr style="border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                        <td style="padding: 1rem; color: var(--text-main, #111827);">{{ item.name }}</td>
+                        <td style="padding: 1rem;">{{ item.stock_quantity }}</td>
+                        <td style="padding: 1rem;">₹{{ "%.2f"|format(item.price) }}</td>
+                        <td style="padding: 1rem; text-align: right;">₹{{ "%.2f"|format(item.stock_quantity * item.price) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" style="text-align: center; padding: 2rem;">No inventory data available.</td></tr>
+                    {% endfor %}
+                {% elif report_type == 'purchase' %}
+                    {% for item in purchase_data %}
+                    <tr style="border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                        <td style="padding: 1rem;">{{ item.purchase_date }}</td>
+                        <td style="padding: 1rem; color: var(--text-main, #111827);">{{ item.supplier.company_name }}</td>
+                        <td style="padding: 1rem;">{{ item.product.name }}</td>
+                        <td style="padding: 1rem;">{{ item.quantity }}</td>
+                        <td style="padding: 1rem; text-align: right;">₹{{ "%.2f"|format(item.purchase_price) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" style="text-align: center; padding: 2rem;">No purchase data available for this period.</td></tr>
+                    {% endfor %}
+                {% elif report_type == 'sales' %}
+                    {% for item in sales_data %}
+                    <tr style="border-bottom: 1px solid var(--border-color, #e5e7eb);">
+                        <td style="padding: 1rem;">{{ item.sale_date }}</td>
+                        <td style="padding: 1rem; color: var(--text-main, #111827);">{{ item.customer.customer_name }}</td>
+                        <td style="padding: 1rem;">{{ item.product.name }}</td>
+                        <td style="padding: 1rem;">{{ item.quantity }}</td>
+                        <td style="padding: 1rem; text-align: right;">₹{{ "%.2f"|format(item.selling_price) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" style="text-align: center; padding: 2rem;">No sales data available for this period.</td></tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+            <tfoot style="background: #f9fafb; font-weight: bold; border-top: 2px solid var(--border-color, #e5e7eb);">
+                {% if report_type == 'inventory' %}
+                <tr>
+                    <td colspan="3" style="padding: 1rem; text-align: right; color: var(--text-main, #111827);">Total Inventory Value:</td>
+                    <td style="padding: 1rem; text-align: right; color: var(--primary, #4f46e5);">₹{{ "%.2f"|format(total_inventory_value) }}</td>
+                </tr>
+                {% elif report_type == 'purchase' %}
+                <tr>
+                    <td colspan="4" style="padding: 1rem; text-align: right; color: var(--text-main, #111827);">Total Purchases:</td>
+                    <td style="padding: 1rem; text-align: right; color: var(--primary, #4f46e5);">₹{{ "%.2f"|format(total_purchase_amount) }}</td>
+                </tr>
+                {% elif report_type == 'sales' %}
+                <tr>
+                    <td colspan="4" style="padding: 1rem; text-align: right; color: var(--text-main, #111827);">Total Sales:</td>
+                    <td style="padding: 1rem; text-align: right; color: var(--primary, #4f46e5);">₹{{ "%.2f"|format(total_sales_amount) }}</td>
+                </tr>
+                {% endif %}
+            </tfoot>
+        </table>
+    </div>
+</div>
+{% endblock %}

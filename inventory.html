@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}GENZ GADGETS | Inventory{% endblock %}
+
+{% block section_title %}Overview{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <img src="{{ url_for('static', filename='images/genz_logo.png') }}" alt="GENZ GADGETS logo" class="hero-logo">
+    <h1 class="hero-title">GENZ GADGETS</h1>
+    <p class="hero-subtitle">Smart Shopkeeper Inventory &amp; Stock Management System</p>
+    <div id="dashboard-datetime" class="hero-datetime"></div>
+</div>
+<div class="stats-grid">
+    <div class="stat-card stat-purple">
+        <div class="stat-label">Total Products</div>
+        <div class="stat-value">{{ products|length }}</div>
+    </div>
+    <div class="stat-card stat-cyan">
+        <div class="stat-label">Categories</div>
+        <div class="stat-value">{{ categories|length }}</div>
+    </div>
+    <div class="stat-card stat-rose">
+        <div class="stat-label">Low Stock Items</div>
+        <div class="stat-value">
+            {% set low_stock_items = [] %}
+            {% for product in products %}
+                {% if product.stock_quantity > 0 and product.stock_quantity < 10 %}
+                    {% set _ = low_stock_items.append(1) %}
+                {% endif %}
+            {% endfor %}
+            {{ low_stock_items|length }}
+        </div>
+    </div>
+    <div class="stat-card stat-green">
+        <div class="stat-label">Inventory Value</div>
+        <div class="stat-value">
+            {% set inventory_value = 0 %}
+            {% for product in products %}
+                {% set inventory_value = inventory_value + (product.price * product.stock_quantity) %}
+            {% endfor %}
+            ₹{{ "%.2f"|format(inventory_value) }}
+        </div>
+    </div>
+</div>
+<section class="search-filter-section">
+    <form action="{{ url_for('inventory') }}" method="GET" class="filter-bar" style="display: flex; gap: 1rem; width: 100%; align-items: center;" id="search-filter-form">
+        <div style="flex: 2; position: relative;">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search product name, brand, spec details..." class="search-input" style="width: 100%; padding-right: 2.5rem;">
+            <i class="bi bi-search" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        </div>
+        <div style="flex: 1;">
+            <select name="category" class="sort-select" style="width: 100%; padding: 0.75rem; border-radius: var(--radius-full); border: 1px solid var(--border-light);" onchange="document.getElementById('search-filter-form').submit()">
+                <option value="" {% if not active_category %}selected{% endif %}>All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}" {% if active_category == cat %}selected{% endif %}>{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.7rem 1.25rem;">Filter</button>
+            {% if query or active_category %}
+                <a href="{{ url_for('inventory') }}" class="btn btn-outline btn-sm" style="padding: 0.7rem 1.25rem;">Clear</a>
+            {% endif %}
+        </div>
+        <div style="margin-left: auto;">
+            <a href="{{ url_for('admin_add_product') }}" class="btn btn-primary btn-sm" style="padding: 0.7rem 1.25rem; font-weight: 700;">
+                <i class="bi bi-plus-circle"></i> Add New Product
+            </a>
+        </div>
+    </form>
+</section>
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Preview</th>
+                <th>Brand &amp; Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock Level Status</th>
+                <th>Quick Adjust</th>
+                <th style="text-align: center;">Management Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+                <tr>
+                    <td style="width: 70px;">
+                        <div class="table-img">
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                        </div>
+                    </td>
+                    <td>
+                        <strong style="color: var(--text-main); font-size: 0.95rem;">{{ product.name }}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                            Brand: <strong>{{ product.brand }}</strong>
+                            {% if product.specs %}
+                                | Specs: {% for k,v in product.specs.items() %}{% if loop.index <= 2 and v != 'N/A' %}{{ k }}: {{ v }} {% endif %}{% endfor %}
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td><span class="badge badge-secondary">{{ product.category }}</span></td>
+                    <td><strong>₹{{ "%.2f"|format(product.price) }}</strong></td>
+                    <td>
+                        <span id="stock-badge-{{ product.id }}" class="badge 
+                            {% if product.stock_quantity == 0 %}
+                                badge-danger
+                            {% elif product.stock_quantity < 5 %}
+                                badge-danger
+                            {% elif product.stock_quantity < 10 %}
+                                badge-warning
+                            {% else %}
+                                badge-success
+                            {% endif %}">
+                            {% if product.stock_quantity == 0 %}
+                                Out of Stock
+                            {% elif product.stock_quantity < 5 %}
+                                Critical Stock: {{ product.stock_quantity }}
+                            {% elif product.stock_quantity < 10 %}
+                                Low Stock: {{ product.stock_quantity }}
+                            {% else %}
+                                In Stock: {{ product.stock_quantity }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <button type="button" class="qty-btn" style="width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);" onclick="ajaxAdjustStock({{ product.id }}, -1)">-</button>
+                            <span id="stock-val-{{ product.id }}" style="font-weight: 700; width: 30px; text-align: center; font-size: 0.9rem;">{{ product.stock_quantity }}</span>
+                            <button type="button" class="qty-btn" style="width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border-light);" onclick="ajaxAdjustStock({{ product.id }}, 1)">+</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <a href="{{ url_for('admin_edit_product', product_id=product.id) }}" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.75rem;">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                            <form action="{{ url_for('admin_delete_product', product_id=product.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this product? All related sales and feedback will be removed.');" style="margin: 0;">
+                                <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.35rem 0.75rem; background-color: var(--accent-danger); border-color: var(--accent-danger);">
+                                    <i class="bi bi-trash3"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 3rem;">
+                        <i class="bi bi-search" style="font-size: 2.5rem; color: var(--text-muted);"></i>
+                        <h4 style="margin-top: 1rem; font-weight: 800;">No Products Matches Filters</h4>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Try modifying your search text query or changing category fields.</p>
+                        <a href="{{ url_for('inventory') }}" class="btn btn-outline btn-sm" style="margin-top: 1rem;">Reset Search</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function updateDashboardDateTime() {
+        var datetimeEl = document.getElementById('dashboard-datetime');
+        if (datetimeEl) {
+            datetimeEl.innerText = new Date().toLocaleString([], {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+    }
+    setInterval(updateDashboardDateTime, 1000);
+    updateDashboardDateTime();
+
+    function ajaxAdjustStock(productId, delta) {
+        var baseUrl = window.location.origin + '/';
+        fetch(baseUrl + 'inventory/adjust-stock/' + productId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ delta: delta })
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.json().then(function(err) { throw err; });
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.status === 'success') {
+                document.getElementById('stock-val-' + productId).innerText = data.new_stock;
+                var badge = document.getElementById('stock-badge-' + productId);
+                if (badge) {
+                    badge.className = 'badge ' + data.badge_class;
+                    badge.innerText = data.badge_text;
+                }
+                showToast('Stock updated to ' + data.new_stock + ' units.', 'success');
+            }
+        })
+        .catch(function(err) {
+            console.error('Stock adjustment failure:', err);
+            showToast(err.message || 'Could not adjust stock.', 'danger');
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}GENZ GADGETS | Sales{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <img src="{{ url_for('static', filename='images/genz_logo.png') }}" alt="GENZ GADGETS logo" class="hero-logo">
+    <h1 class="hero-title">Sales Management</h1>
+    <p class="hero-subtitle">Track customer sales and keep inventory counts in sync automatically.</p>
+</div>
+
+<section class="search-filter-section">
+    <form action="{{ url_for('sales') }}" method="GET" class="filter-bar" style="display: flex; gap: 1rem; width: 100%; align-items: center;">
+        <div style="flex: 2; position: relative;">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search by customer, product, or date" class="search-input" style="width: 100%; padding-right: 2.5rem;">
+            <i class="bi bi-search" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.7rem 1.25rem;">Search</button>
+            {% if query %}
+                <a href="{{ url_for('sales') }}" class="btn btn-outline btn-sm" style="padding: 0.7rem 1.25rem;">Clear</a>
+            {% endif %}
+        </div>
+        <div style="margin-left: auto;">
+            <button type="button" class="btn btn-primary btn-sm" style="padding: 0.7rem 1.25rem; font-weight: 700;" onclick="openSaleModal()">
+                <i class="bi bi-plus-circle"></i> Add Sale
+            </button>
+        </div>
+    </form>
+</section>
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Selling Price</th>
+                <th>Sale Date</th>
+                <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+                <tr>
+                    <td>{{ sale.customer.customer_name }}</td>
+                    <td>{{ sale.product.name }}</td>
+                    <td>{{ sale.quantity }}</td>
+                    <td>₹{{ "%.2f"|format(sale.selling_price) }}</td>
+                    <td>{{ sale.sale_date }}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <a href="{{ url_for('edit_sale', sale_id=sale.id) }}" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.75rem;">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                            <form action="{{ url_for('delete_sale', sale_id=sale.id) }}" method="POST" onsubmit="return confirm('Delete this sale?');" style="margin: 0;">
+                                <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.35rem 0.75rem; background-color: var(--accent-danger); border-color: var(--accent-danger);">
+                                    <i class="bi bi-trash3"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 3rem;">
+                        <i class="bi bi-cart3" style="font-size: 2.5rem; color: var(--text-muted);"></i>
+                        <h4 style="margin-top: 1rem; font-weight: 800;">No Sales Found</h4>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="saleModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.25); z-index: 1100; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="width: min(720px, 100%); background: white; border-radius: 1rem; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12); overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="margin: 0; font-weight: 800; color: var(--text-main);">{% if sale %}Edit Sale{% else %}Add New Sale{% endif %}</h5>
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeSaleModal()">Close</button>
+        </div>
+        <form action="{% if sale %}{{ url_for('edit_sale', sale_id=sale.id) }}{% else %}{{ url_for('add_sale') }}{% endif %}" method="POST">
+            <div style="padding: 1.5rem; display: grid; gap: 1rem;">
+                <div class="row" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
+                    <div>
+                        <label class="form-label" for="customer-id">Customer</label>
+                        <select id="customer-id" name="customer_id" class="form-control" required>
+                            <option value="">Select Customer</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}" {% if sale and sale.customer_id == customer.id %}selected{% endif %}>{{ customer.customer_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="product-id">Product</label>
+                        <select id="product-id" name="product_id" class="form-control" required>
+                            <option value="">Select Product</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" {% if sale and sale.product_id == product.id %}selected{% endif %}>{{ product.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="row" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
+                    <div>
+                        <label class="form-label" for="quantity">Quantity</label>
+                        <input type="number" id="quantity" name="quantity" class="form-control" min="1" value="{{ sale.quantity if sale else '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label" for="selling-price">Selling Price</label>
+                        <input type="number" step="0.01" id="selling-price" name="selling_price" class="form-control" min="0" value="{{ sale.selling_price if sale else '' }}" required>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" for="sale-date">Sale Date</label>
+                    <input type="date" id="sale-date" name="sale_date" class="form-control" value="{{ sale.sale_date if sale else '' }}" required>
+                </div>
+            </div>
+            <div style="padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn btn-outline" onclick="closeSaleModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">{% if sale %}Save Changes{% else %}Add Sale{% endif %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openSaleModal() {
+        document.getElementById('saleModal').style.display = 'flex';
+    }
+
+    function closeSaleModal() {
+        document.getElementById('saleModal').style.display = 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if ({{ 'true' if sale else 'false' }}) {
+            openSaleModal();
+        }
+    });
+</script>
+{% endblock %}

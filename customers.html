@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}GENZ GADGETS | Customers{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <img src="{{ url_for('static', filename='images/genz_logo.png') }}" alt="GENZ GADGETS logo" class="hero-logo">
+    <h1 class="hero-title">Customer Management</h1>
+    <p class="hero-subtitle">Maintain a polished list of customers with contact details and addresses.</p>
+</div>
+
+<section class="search-filter-section">
+    <form action="{{ url_for('customers') }}" method="GET" class="filter-bar" style="display: flex; gap: 1rem; width: 100%; align-items: center;">
+        <div style="flex: 2; position: relative;">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search by customer name, phone, email or address" class="search-input" style="width: 100%; padding-right: 2.5rem;">
+            <i class="bi bi-search" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.7rem 1.25rem;">Search</button>
+            {% if query %}
+                <a href="{{ url_for('customers') }}" class="btn btn-outline btn-sm" style="padding: 0.7rem 1.25rem;">Clear</a>
+            {% endif %}
+        </div>
+        <div style="margin-left: auto;">
+            <button type="button" class="btn btn-primary btn-sm" style="padding: 0.7rem 1.25rem; font-weight: 700;" onclick="openCustomerModal()">
+                <i class="bi bi-plus-circle"></i> Add Customer
+            </button>
+        </div>
+    </form>
+</section>
+
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Customer Name</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th style="text-align: center;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+                <tr>
+                    <td><strong style="color: var(--text-main);">{{ customer.customer_name }}</strong></td>
+                    <td>{{ customer.phone or '—' }}</td>
+                    <td>{{ customer.email or '—' }}</td>
+                    <td>{{ customer.address or '—' }}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <a href="{{ url_for('edit_customer', customer_id=customer.id) }}" class="btn btn-outline btn-sm" style="padding: 0.35rem 0.75rem;">
+                                <i class="bi bi-pencil-square"></i> Edit
+                            </a>
+                            <form action="{{ url_for('delete_customer', customer_id=customer.id) }}" method="POST" onsubmit="return confirm('Delete this customer?');" style="margin: 0;">
+                                <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.35rem 0.75rem; background-color: var(--accent-danger); border-color: var(--accent-danger);">
+                                    <i class="bi bi-trash3"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 3rem;">
+                        <i class="bi bi-people" style="font-size: 2.5rem; color: var(--text-muted);"></i>
+                        <h4 style="margin-top: 1rem; font-weight: 800;">No Customers Found</h4>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Start by adding your first customer profile.</p>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="customerModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.25); z-index: 1100; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="width: min(720px, 100%); background: white; border-radius: 1rem; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12); overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="margin: 0; font-weight: 800; color: var(--text-main);">{% if customer %}Edit Customer{% else %}Add New Customer{% endif %}</h5>
+            <button type="button" class="btn btn-outline btn-sm" onclick="closeCustomerModal()">Close</button>
+        </div>
+        <form action="{% if customer %}{{ url_for('edit_customer', customer_id=customer.id) }}{% else %}{{ url_for('add_customer') }}{% endif %}" method="POST">
+            <div style="padding: 1.5rem; display: grid; gap: 1rem;">
+                <div>
+                    <label class="form-label" for="customer-name">Customer Name</label>
+                    <input type="text" id="customer-name" name="customer_name" class="form-control" value="{{ customer.customer_name if customer else '' }}" required>
+                </div>
+                <div class="row" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
+                    <div>
+                        <label class="form-label" for="customer-phone">Phone</label>
+                        <input type="text" id="customer-phone" name="phone" class="form-control" value="{{ customer.phone if customer else '' }}">
+                    </div>
+                    <div>
+                        <label class="form-label" for="customer-email">Email</label>
+                        <input type="email" id="customer-email" name="email" class="form-control" value="{{ customer.email if customer else '' }}">
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" for="customer-address">Address</label>
+                    <textarea id="customer-address" name="address" class="form-control" rows="3">{{ customer.address if customer else '' }}</textarea>
+                </div>
+            </div>
+            <div style="padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-light); display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn btn-outline" onclick="closeCustomerModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">{% if customer %}Save Changes{% else %}Add Customer{% endif %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openCustomerModal() {
+        var modal = document.getElementById('customerModal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function closeCustomerModal() {
+        var modal = document.getElementById('customerModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if ({{ 'true' if customer else 'false' }}) {
+            openCustomerModal();
+        }
+    });
+</script>
+{% endblock %}
