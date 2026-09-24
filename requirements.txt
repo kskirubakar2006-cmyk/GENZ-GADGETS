@@ -4,3 +4,4 @@ flask_login
 werkzeug
 jinja2
 sqlalchemy
+gunicorn
